@@ -183,16 +183,63 @@ Aplikace splňuje zadání – paralelní crawling, omezení domény, model prod
 
 ---
 
-## Známé bugy a plán rozšíření
+## Známé bugy
 
 ### Známé omezení
 - extrakce odkazů pouze z `<a href>` – ignoruje JS navigaci
 - seznam navštívených URL je pouze v paměti
 
-### Možný rozvoj
-- ukládat metadata (status code, velikost)
-- napojení na databázi
-- implementovat webové UI pro kontrolu průběhu
+## Plán rozšíření projektu
+
+Příští verze aplikace se přesune od stahování HTML k cílené těžbě dat. Vícevláknová architektura zůstane zachována, ale stránkový obsah se nebude ukládat automaticky. Uživatel si vybere, jaká data chce ze stránek získat, a pouze ta se uloží. Ukládání HTML bude volitelné.
+
+### 1. Těžba dat místo ukládání HTML
+
+Crawler nebude ukládat celé stránky. Z každé navštívené URL vytěží jen konkrétní informace podle nastavení. Výsledkem tak nebude složka plná HTML, ale přehled extrahovaných dat.
+
+### 2. Režimy těžby
+
+Aplikace nabídne několik použitelných profilů:
+
+**Režim pro kontakty**  
+extrakce e-mailů, telefonních čísel a názvů firem
+
+**Režim pro SEO**  
+title, meta popisy, klíčová slova, nadpisy h1 až h6, canonical odkazy
+
+**Režim pro textový obsah**  
+hlavní text stránky, struktura odstavců a nadpisů
+
+Režim bude možné změnit v konfiguraci bez zásahu do kódu.
+
+### 3. Vlastní pravidla
+
+Uživatel bude moci definovat vlastní selektory, regulární výrazy i filtry URL. Tím lze crawler přizpůsobit pro individuální potřeby, od sběru veřejných kontaktů až po extrakci specifických dat pro projekty nebo analýzy.
+
+### 4. Konzolové uživatelské rozhraní
+
+Místo rychle se měnících logů se v konzoli zobrazí přehledné informace:
+
+- průběh zpracování pomocí progress baru  
+- aktuální URL  
+- počet nalezených dat  
+
+Log do souboru zůstane zachován, ale výstup v terminálu bude čistší a použitelnější.
+
+### 5. Testování
+
+Do projektu budou doplněny jednotkové testy zaměřené na parsování HTML, filtrování URL a práci se zámky. Součástí bude i krátké uživatelské testování a jednoduchý report o výsledcích.
 
 ---
 
+## Praktické využití
+
+Data miner má využití všude tam, kde je potřeba projít větší množství stránek a získat z nich konkrétní informace bez ruční práce. Typické scénáře:
+
+- sběr kontaktů z firemních webů  
+- rychlá SEO analýza konkurence  
+- extrakce dat o produktech  
+- sběr textového obsahu pro studium nebo analýzu  
+- shromažďování veřejně dostupných informací bez nutnosti manuálního procházení
+
+Vícevláknové zpracování udržuje rychlost, respektování robots.txt zajišťuje bezpečný provoz a vlastní pravidla dovolí přizpůsobit aplikaci konkrétním účelům.
