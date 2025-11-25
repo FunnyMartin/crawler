@@ -1,11 +1,6 @@
-# src/webcrawler/config.py
-# Autor: Martin Šilar
-# Konfigurace pro multithreaded web crawler
-
 import configparser
 from dataclasses import dataclass
 from pathlib import Path
-
 
 @dataclass
 class CrawlerConfig:
@@ -18,18 +13,22 @@ class CrawlerConfig:
     user_agent: str
     output_dir: Path
     log_file: Path
+    profile: str
+    save_html: bool
+    profiles: list[str]
 
 
-def load_config(path: str = "config.ini") -> CrawlerConfig:
+def load_config(path="config.ini") -> CrawlerConfig:
     cfg = configparser.ConfigParser()
-    loaded = cfg.read(path, encoding="utf-8")
-    if not loaded:
-        raise FileNotFoundError(f"Konfigurační soubor {path} nebyl nalezen")
+    if not cfg.read(path, encoding="utf-8"):
+        raise FileNotFoundError("Konfigurační soubor nenalezen.")
 
     c = cfg["crawler"]
 
     output_dir = Path(c.get("output_dir", "data"))
     log_file = Path(c.get("log_file", "logs/crawler.log"))
+
+    profiles = [p.strip() for p in c.get("profiles", "").split(",") if p.strip()]
 
     return CrawlerConfig(
         start_url=c.get("start_url"),
@@ -41,4 +40,7 @@ def load_config(path: str = "config.ini") -> CrawlerConfig:
         user_agent=c.get("user_agent", fallback="WebCrawlerSchoolProject/1.0"),
         output_dir=output_dir,
         log_file=log_file,
+        profile=c.get("profile", fallback="contacts"),
+        save_html=c.getboolean("save_html", fallback=False),
+        profiles=profiles,
     )
