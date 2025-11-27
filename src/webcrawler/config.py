@@ -25,10 +25,10 @@ def load_config(path="config.ini") -> CrawlerConfig:
 
     c = cfg["crawler"]
 
+    profiles = [p.strip() for p in c.get("profiles", "").split(",") if p.strip()]
+
     output_dir = Path(c.get("output_dir", "data"))
     log_file = Path(c.get("log_file", "logs/crawler.log"))
-
-    profiles = [p.strip() for p in c.get("profiles", "").split(",") if p.strip()]
 
     return CrawlerConfig(
         start_url=c.get("start_url"),

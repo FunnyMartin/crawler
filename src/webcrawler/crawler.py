@@ -1,27 +1,29 @@
 # src/webcrawler/crawler.py
 # Autor: Martin Šilar
-# Multithreaded Web Crawler – verze s progress barem
+# Multithreaded Web Crawler – těžba dat (contacts / seo / content)
 
 import threading
-from queue import Queue
-from pathlib import Path
-from urllib.parse import urljoin, urlparse
 import time
+import json
+from queue import Queue
+from urllib.parse import urljoin, urlparse
+
 import requests
 from bs4 import BeautifulSoup
 
-from .config import CrawlerConfig
+from .base_extractor import BaseExtractor
+
 
 JOB_SENTINEL = object()
 LOG_SENTINEL = object()
 
 
 class WebCrawler:
-    def __init__(self, config: CrawlerConfig):
+    def __init__(self, config):
         self.config = config
 
-        self.task_queue: Queue = Queue(maxsize=self.config.queue_maxsize)
-        self.log_queue: Queue = Queue()
+        self.task_queue = Queue(maxsize=self.config.queue_maxsize)
+        self.log_queue = Queue()
 
         self.visited = set()
         self.visited_lock = threading.Lock()
@@ -29,23 +31,29 @@ class WebCrawler:
         self.page_count = 0
         self.page_count_lock = threading.Lock()
 
-        self.ui_status = ""
-        self.ui_lock = threading.Lock()
-
-        self._finished = False
+        self.results = []
+        self.extractor: BaseExtractor | None = None
 
         self.config.output_dir.mkdir(parents=True, exist_ok=True)
         self.config.log_file.parent.mkdir(parents=True, exist_ok=True)
 
         self.domain = self.config.allowed_domain
+
         self.disallowed_paths, self.crawl_delay = self._load_robots_txt()
 
-    # ---------------- LOGGING ----------------
+
+    def set_extractor(self, extractor: BaseExtractor):
+        """Nastaví extraktor podle zvoleného profilu."""
+        self.extractor = extractor
+        extractor.set_crawler(self)
+
 
     def log(self, msg: str):
+        """Vloží zprávu do logovací fronty (zapisuje se jen do souboru)."""
         self.log_queue.put(msg)
 
     def logger_thread(self):
+        """Samostatné vlákno pro zápis logů do souboru."""
         with self.config.log_file.open("a", encoding="utf-8") as f:
             while True:
                 msg = self.log_queue.get()
@@ -53,22 +61,16 @@ class WebCrawler:
                     if msg is LOG_SENTINEL:
                         break
                     timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
-                    line = f"{timestamp} | {msg}"
-                    f.write(line + "\n")
+                    f.write(f"{timestamp} | {msg}\n")
                     f.flush()
                 finally:
                     self.log_queue.task_done()
 
-    # ------------ UI STATUS ------------
 
-    def update_status(self, text: str):
-        with self.ui_lock:
-            self.ui_status = text
+    def worker_thread(self, wid: int):
+        """Worker vlákno: stahuje stránky, těží data, případně ukládá HTML a přidává nové URL."""
+        self.log(f"[WORKER-{wid}] Start worker")
 
-    # ---------------- WORKER ----------------
-
-    def worker_thread(self, worker_id: int):
-        self.log(f"[WORKER-{worker_id}] Start")
         session = requests.Session()
         session.headers.update({"User-Agent": self.config.user_agent})
 
@@ -76,37 +78,52 @@ class WebCrawler:
             url = self.task_queue.get()
 
             if url is JOB_SENTINEL:
-                self.log(f"[WORKER-{worker_id}] Dostal sentinel, končím.")
+                self.log(f"[WORKER-{wid}] Dostal sentinel, končím.")
                 self.task_queue.task_done()
                 break
-
-            self.update_status(f"Stahuji: {url}")
 
             if self.crawl_delay > 0:
                 time.sleep(self.crawl_delay)
 
             with self.page_count_lock:
                 if self.page_count >= self.config.max_pages:
+                    self.log(f"[WORKER-{wid}] Max pages dosaženo, url přeskočeno: {url}")
                     self.task_queue.task_done()
                     continue
                 self.page_count += 1
                 index = self.page_count
+
+            self.log(f"[WORKER-{wid}] Fetch {url} ({index}/{self.config.max_pages})")
 
             try:
                 resp = session.get(url, timeout=self.config.request_timeout)
                 resp.raise_for_status()
                 html = resp.text
             except Exception as e:
-                self.log(f"[WORKER-{worker_id}] ERROR {url}: {e}")
-                self.update_status(f"Chyba: {url}")
+                self.log(f"[WORKER-{wid}] ERROR {url}: {e}")
                 self.task_queue.task_done()
                 continue
 
+            if self.extractor:
+                try:
+                    extracted = self.extractor.extract(url, html)
+                except Exception as e:
+                    self.log(f"[WORKER-{wid}] EXTRACT ERROR {url}: {e}")
+                    extracted = None
+
+                if self._should_save(extracted):
+                    self.results.append(extracted)
+                    self.log(f"[WORKER-{wid}] Data uložena z {url}")
+                else:
+                    self.log(f"[WORKER-{wid}] Nic užitečného k uložení na {url}")
+
             if self.config.save_html:
-                self._save_page(url, html, index)
+                self._save_page(index, url, html)
+                self.log(f"[WORKER-{wid}] HTML uložen: {url}")
 
             links = self._extract_links(url, html)
 
+            added = 0
             with self.visited_lock:
                 for link in links:
                     if link in self.visited:
@@ -117,67 +134,99 @@ class WebCrawler:
                         continue
                     if self.page_count >= self.config.max_pages:
                         break
+
                     self.visited.add(link)
                     try:
                         self.task_queue.put_nowait(link)
+                        added += 1
                     except:
-                        pass
+                        self.log(f"[WORKER-{wid}] Fronta plná, zahazuji odkaz: {link}")
 
-            self.update_status(f"Hotovo: {url}")
+            if added > 0:
+                self.log(f"[WORKER-{wid}] Přidáno {added} nových URL z {url}")
+
             self.task_queue.task_done()
 
         session.close()
+        self.log(f"[WORKER-{wid}] Ukončen.")
 
-    # ---------------- ROBOTS ----------------
+
+    def _should_save(self, data: dict | None) -> bool:
+        """Rozhodne, jestli daný výsledek má smysl ukládat podle profilu."""
+        if not data:
+            return False
+
+        profile = self.config.profile
+
+        if profile == "contacts":
+            return bool(data.get("emails")) or bool(data.get("phones"))
+
+        if profile == "seo":
+            return bool(data.get("title")) or bool(data.get("meta_description"))
+
+        if profile == "content":
+            text = data.get("text", "").strip()
+            return len(text) > 20
+
+        return True
 
     def _load_robots_txt(self):
-        url = f"https://{self.domain}/robots.txt"
+        """Načte robots.txt pro doménu a vrátí (disallowed_paths, crawl_delay)."""
+        root = f"https://{self.domain}/robots.txt"
         disallowed = []
         delay = 0
+
         try:
-            r = requests.get(url, timeout=5)
-            if r.status_code != 200:
+            resp = requests.get(root, timeout=5)
+            if resp.status_code != 200:
                 return [], 0
 
-            for line in r.text.splitlines():
+            for line in resp.text.splitlines():
                 line = line.strip().lower()
+
                 if line.startswith("disallow:"):
                     rule = line.split(":", 1)[1].strip()
-                    disallowed.append(rule)
+                    if rule:
+                        disallowed.append(rule)
+
                 if line.startswith("crawl-delay:"):
                     try:
                         delay = float(line.split(":", 1)[1].strip())
                     except:
                         delay = 0
-        except:
+
+            return disallowed, delay
+
+        except Exception as e:
+            self.log(f"[ROBOTS] Chyba při načítání robots.txt: {e}")
             return [], 0
 
-        return disallowed, delay
-
-    def _allowed_by_robots(self, url):
+    def _allowed_by_robots(self, url: str) -> bool:
+        """Vrací True, pokud url není blokována v robots.txt."""
         path = urlparse(url).path
-        for r in self.disallowed_paths:
-            if r == "/":
+        for rule in self.disallowed_paths:
+            if rule == "/":
                 return False
-            if path.startswith(r):
+            if path.startswith(rule):
                 return False
         return True
 
-    def _same_domain(self, url):
+
+    def _same_domain(self, url: str) -> bool:
+        """Kontroluje, zda URL patří do povolené domény (včetně subdomén)."""
         host = urlparse(url).netloc
         return host == self.domain or host.endswith("." + self.domain)
 
-    # ---------------- HTML ----------------
-
-    def _extract_links(self, base_url, html):
+    def _extract_links(self, base, html):
+        """Z HTML vytáhne všechny odkazy <a href> a vrátí je jako absolutní URL bez fragmentu."""
         soup = BeautifulSoup(html, "html.parser")
         out = []
-        for tag in soup.find_all("a", href=True):
-            href = tag["href"]
-            abs_url = urljoin(base_url, href)
+        for a in soup.find_all("a", href=True):
+            abs_url = urljoin(base, a["href"])
             cleaned = urlparse(abs_url)._replace(fragment="").geturl()
             out.append(cleaned)
         return out
+
 
     def _safe_filename(self, index, url):
         parsed = urlparse(url)
@@ -187,50 +236,58 @@ class WebCrawler:
             path = path[:50]
         return f"{index:04d}_{path}.html"
 
-    def _save_page(self, url, html, index):
-        file = self.config.output_dir / self._safe_filename(index, url)
+    def _save_page(self, index, url, html):
+        fpath = self.config.output_dir / self._safe_filename(index, url)
         try:
-            with file.open("w", encoding="utf-8") as f:
+            with fpath.open("w", encoding="utf-8") as f:
                 f.write(f"<!-- URL: {url} -->\n")
                 f.write(html)
         except Exception as e:
-            self.log(f"[SAVE][ERROR] {url}: {e}")
+            self.log(f"[SAVE][ERROR] {url} -> {fpath}: {e}")
 
-    # ---------------- RUN LOGIC ----------------
-
-    def start_async(self):
-        self._finished = False
+    def run(self):
+        """Spustí crawler: logger, workery, naplní frontu a počká na dokončení."""
+        self.log("[MAIN] Spouštím crawler")
+        self.log(f"[MAIN] Profil: {self.config.profile}, save_html={self.config.save_html}")
 
         logger = threading.Thread(target=self.logger_thread, daemon=False)
         logger.start()
-        self._logger_thread = logger
 
         workers = []
         for i in range(self.config.max_workers):
-            t = threading.Thread(target=self.worker_thread, args=(i + 1,))
+            t = threading.Thread(target=self.worker_thread, args=(i + 1,), daemon=False)
             t.start()
             workers.append(t)
-        self._workers = workers
+            self.log(f"[MAIN] Spuštěn worker {i + 1}")
 
         with self.visited_lock:
             self.visited.add(self.config.start_url)
 
         self.task_queue.put(self.config.start_url)
+        self.log(f"[MAIN] Start URL: {self.config.start_url}")
 
-    def wait(self):
         self.task_queue.join()
 
-        for _ in range(self.config.max_workers):
+        for _ in workers:
             self.task_queue.put(JOB_SENTINEL)
 
-        for t in self._workers:
+        for t in workers:
             t.join()
+            self.log("[MAIN] Worker ukončen")
 
         self.log_queue.put(LOG_SENTINEL)
         self.log_queue.join()
-        self._logger_thread.join()
+        logger.join()
 
-        self._finished = True
+        self.log("[MAIN] Crawling dokončen.")
 
-    def is_running(self):
-        return not self._finished
+    def save_results(self):
+        """Uloží vytěžená data do JSON souboru podle aktivního profilu."""
+        output_path = self.config.output_dir / f"{self.config.profile}_data.json"
+        try:
+            with output_path.open("w", encoding="utf-8") as f:
+                json.dump(self.results, f, indent=2, ensure_ascii=False)
+            self.log(f"[RESULTS] Uloženo {len(self.results)} záznamů do {output_path}")
+        except Exception as e:
+            self.log(f"[RESULTS][ERROR] Chyba při ukládání výsledků: {e}")
+        return output_path
