@@ -1,3 +1,7 @@
+# src/webcrawler/contacts_extractor.py
+# Autor: Martin Šilar
+# Extraktor kontaktů – emaily a telefonní čísla
+
 import re
 from .base_extractor import BaseExtractor
 

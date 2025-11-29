@@ -1,3 +1,7 @@
+# src/commands/run_crawler.py
+# Autor: Martin Šilar
+# Spuštění crawleru přes Command pattern
+
 import threading
 from tqdm import tqdm
 

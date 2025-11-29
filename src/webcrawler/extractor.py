@@ -1,3 +1,7 @@
+# src/webcrawler/extractor.py
+# Autor: Martin Šilar
+# Původní extraktor – nahrazen specializovanými extraktory
+
 from .contacts_extractor import ContactsExtractor
 from .seo_extractor import SEOExtractor
 from .content_extractor import ContentExtractor

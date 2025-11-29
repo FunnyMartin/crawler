@@ -1,5 +1,10 @@
+# src/webcrawler/content_extractor.py
+# Autor: Martin Šilar
+# Extraktor textového obsahu – odstavce, hlavní text
+
 from bs4 import BeautifulSoup
 from .base_extractor import BaseExtractor
+
 
 class ContentExtractor(BaseExtractor):
     def extract(self, url, html):

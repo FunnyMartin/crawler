@@ -1,5 +1,10 @@
+# src/webcrawler/seo_extractor.py
+# Autor: Martin Šilar
+# Extraktor SEO dat – title, meta description, headingy
+
 from bs4 import BeautifulSoup
 from .base_extractor import BaseExtractor
+
 
 class SEOExtractor(BaseExtractor):
     def extract(self, url, html):

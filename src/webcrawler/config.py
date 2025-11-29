@@ -1,3 +1,7 @@
+# src/webcrawler/config.py
+# Autor: Martin Šilar
+# Načítání a správa konfigurace crawleru
+
 import configparser
 from dataclasses import dataclass
 from pathlib import Path

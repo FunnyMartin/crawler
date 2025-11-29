@@ -1,5 +1,10 @@
+# src/commands/set_profile.py
+# Autor: Martin Šilar
+# Nastavení profilu těžby a uložení do config.ini
+
 import configparser
 from .base import Command
+
 
 class SetProfileCommand(Command):
     def __init__(self, config, config_path="config.ini"):

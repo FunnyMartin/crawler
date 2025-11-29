@@ -1,4 +1,9 @@
+# src/commands/show_config.py
+# Autor: Martin Šilar
+# Zobrazení aktuální konfigurace crawleru
+
 from .base import Command
+
 
 class ShowConfigCommand(Command):
     def __init__(self, config):

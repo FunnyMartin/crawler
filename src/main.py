@@ -1,3 +1,7 @@
+# src/main.py
+# Autor: Martin Šilar
+# Vstupní bod aplikace – uživatelské rozhraní a command pattern
+
 import sys
 from src.webcrawler.config import load_config
 from src.commands.run_crawler import RunCrawlerCommand

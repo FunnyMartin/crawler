@@ -1,5 +1,10 @@
+# src/commands/toggle_save_html.py
+# Autor: Martin Šilar
+# Přepínání ukládání HTML stránek v konfiguraci
+
 import configparser
 from .base import Command
+
 
 class ToggleSaveHtmlCommand(Command):
     def __init__(self, config, config_path="config.ini"):

@@ -1,3 +1,7 @@
+# src/webcrawler/base_extractor.py
+# Autor: Martin Šilar
+# Základní třída pro extraktory – společná logika
+
 import re
 from bs4 import BeautifulSoup
 
