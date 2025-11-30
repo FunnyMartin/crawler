@@ -1,166 +1,259 @@
 # Multithreaded Web Crawler – dokumentace
 
-Autor: Martin Šilar  
-Škola: SPŠE Ječná  
-Ročník: 4.  
-Předmět: PV – školní projekt (souběžné programování)  
-Kontakt: silar@spsejecna.cz  
-Datum vypracování: 23. 11. 2025
+Autor: **Martin Šilar**  
+Škola: **SPŠE Ječná**  
+Ročník: **4.**  
+Předmět: **PV – školní projekt (souběžné programování)**  
+Kontakt: *silar@spsejecna.cz*  
+Datum vypracování: **30. 11. 2025**
 
+---
 
 ## 1. Název a účel projektu
 
 **Název projektu:** Multithreaded Web Crawler
 
 **Stručný popis:**  
-Projekt je vícevláknový webový crawler v jazyce Python. Aplikace paralelně prochází web v rámci jedné domény, stahuje HTML stránky, ukládá je na disk a zapisuje průběh do logu. Crawler využívá několik pracovních vláken, která si z fronty odebírají URL ke zpracování. Další vlákno slouží jako logger a sériově zapisuje logovací zprávy do souboru, aby se předešlo konfliktům při zápisu.
+Projekt je vícevláknový webový crawler napsaný v Pythonu. Paralelně prochází web v rámci jedné domény, zpracovává stránky a podle zvoleného profilu z nich těží strukturovaná data. Aplikace využívá architekturu *producer–consumer*, více pracovních vláken, samostatné logovací vlákno, a konfigurační soubor, který umožňuje měnit chování programu bez zásahu do kódu.
 
 **Účel projektu:**  
-Prokázat praktické použití paralelního a souběžného zpracování v reálné úloze, ukázat použití klasického vzoru producer–consumer, řešit synchronizaci nad sdílenými zdroji a vytvořit konfigurovatelný nástroj, který dokáže stáhnout omezenou část webu v rámci jedné domény.
+Ukázat praktické využití paralelního zpracování, front úloh, synchronizace vláken a ETL principů na reálném problému – automatickém sběru dat z webu.  
+Aktuální verze se zaměřuje na **těžbu dat (data mining)**: kontakty, SEO informace nebo textový obsah, nikoliv již jen na ukládání HTML.
 
-Jedná se o školní projekt, nikoliv nástroj určený pro masivní indexování internetu.
-
+---
 
 ## 2. Požadavky uživatele
 
 ### 2.1 Funkční požadavky
 
-1. Uživatel nastaví počáteční URL (start_url), ze které crawler začíná procházet web.
-2. Crawler smí procházet pouze odkazy v rámci jedné domény (allowed_domain).
-3. Program musí být vícevláknový, několik worker vláken stahuje stránky paralelně.
-4. Každá stažená stránka se uloží do adresáře output_dir jako samostatný HTML soubor.
-5. Aplikace vede seznam již navštívených URL (visited), aby se jednotlivé stránky nestahovaly opakovaně.
-6. Počet stažených stránek omezuje parametr max_pages.
-7. Průběh běhu je zapisován do logovacího souboru (log_file) přes jedno samostatné logovací vlákno.
-8. Aplikace je spustitelná z příkazové řádky bez použití IDE.
+1. Nastavení počáteční URL (start_url), ze které crawler začíná.
+2. Procházení pouze v rámci jedné domény (allowed_domain).
+3. Použití více worker vláken pro paralelní stahování.
+4. Čtení konfigurace ze souboru `config.ini`.
+5. Těžba dat podle zvoleného profilu:
+    - **contacts** – e-maily, telefonní čísla
+    - **seo** – title, meta popis, nadpisy
+    - **content** – čistý textový obsah
+6. Volitelné ukládání HTML (save_html).
+7. Ukládání výstupních dat do JSON.
+8. Zapisování logů pomocí samostatného logovacího vlákna.
+9. Spuštění z příkazové řádky.
 
 ### 2.2 Nefunkční požadavky
 
-1. **Výkon**  
-   Vícevláknové zpracování musí být efektivnější než sekvenční stahování, pokud je k dispozici dostatek odkazů.
+- efektivní paralelní provádění
+- respektování robots.txt (Disallow, Crawl-delay)
+- odolnost vůči chybám (timeouty, HTTP chyby)
+- neztrátová synchronizace nad sdílenými strukturami
+- přehledné a udržovatelné rozložení kódu do modulů
+- přenositelnost (Python 3.x + pip instalace)
 
-2. **Omezení zdrojů a bezpečnost**  
-   Crawler nesmí pracovat mimo povolenou doménu.  
-   Fronta úloh (queue_maxsize) je omezena, aby nedošlo k nadměrnému využití paměti.  
-   Každý HTTP požadavek má vlastní časový limit.
+### 2.3 Respektování robots.txt
 
-3. **Robustnost**  
-   Chyby při stahování (například timeouty nebo HTTP chyby 4xx/5xx) nesmějí ukončit běh programu.  
-   Chyby se pouze zapisují do logu.
+Podporované direktivy:
 
-4. **Konfigurovatelnost**  
-   Všechna důležitá nastavení jsou uložena v souboru config.ini. Uživatel nemusí měnit zdrojový kód.
+- **Disallow:** URL, jejichž cesta odpovídá pravidlu, nejsou nikdy zpracovány
+- **Crawl-delay:** časová prodleva mezi požadavky
 
-5. **Čitelnost a údržba**  
-   Kód je rozdělen do modulů main.py, config.py a crawler.py.  
-   Konfigurace je reprezentována datovou třídou CrawlerConfig.
+Tento mechanismus zajišťuje bezpečný a etický běh crawleru.
 
-6. **Přenositelnost**  
-   Program musí být spustitelný na školních počítačích s Pythonem 3.x a možností instalace balíčků z requirements.txt.
+### 2.4 Use Case – slovní popis
 
+Aktér: uživatel/student  
+Cíl: stáhnout část webu nebo z něj vytěžit strukturovaná data
 
-### Respektování robots.txt a omezení crawlingu
+Postup:
+1. Uživatel upraví config.ini.
+2. Spustí program:
+   ```
+   python -m src.main
+   ```
+3. Vybere režim v textovém menu.
+4. Crawler paralelně stahuje stránky a těží data podle profilu.
+5. Data se uloží do JSON (`data/<profil>_data.json`).
+6. Logy se zapíší do `logs/crawler.log`.
 
-Crawler podporuje pravidla definovaná v souboru robots.txt v kořenové části domény.
-
-Při startu aplikace se soubor robots.txt stáhne a zpracuje. Podporované direktivy:
-
-**Disallow**  
-URL jejichž cesta začíná některou z direktiv Disallow, nejsou vloženy do fronty a nejsou stahovány.
-
-**Crawl-delay**  
-Pokud robots.txt obsahuje direktivu Crawl-delay, crawler čeká uvedený počet sekund mezi dvěma HTTP požadavky. Tím se snižuje zátěž serveru a minimalizuje riziko blokování.
-
-**Význam**  
-Respektování robots.txt zajišťuje etické chování crawleru, snižuje riziko zablokování serverem a odpovídá běžným standardům provozu crawlerů. Servery s dlouhým Crawl-delay nebo se skrytými odkazy mohou crawler omezit v počtu dostupných URL, což je očekávané a v souladu s pravidly serveru.
-
-
-### 2.3 Use Case (slovní popis)
-
-**Use Case: Stažení části webu**
-
-- Aktér: student
-- Předpoklad: instalovaný Python, nainstalované závislosti a vyplněný config.ini.
-- Postup:
-    1. Uživatel nastaví start_url a allowed_domain.
-    2. Spustí příkaz python src/main.py.
-    3. Crawler vytvoří worker vlákna a začne paralelně stahovat stránky.
-    4. Stažené stránky jsou ukládány do adresáře data.
-    5. Logovací vlákno průběžně zapisuje logy.
-    6. Po dosažení limitu max_pages nebo po vyčerpání URL crawler automaticky skončí.
-- Výsledek: sada HTML souborů ve složce data a záznam logů v logs/crawler.log.
-
+---
 
 ## 3. Architektura aplikace
 
 ### 3.1 Moduly a soubory
 
-**src/main.py**  
-Vstupní bod aplikace.  
-Načítá konfiguraci a spouští crawler.
+- **src/main.py**  
+  Konzolové uživatelské rozhraní + Command pattern.
 
-**src/webcrawler/config.py**  
-Obsahuje datovou třídu CrawlerConfig.  
-Zajišťuje načtení a interpretaci souboru config.ini.
+- **src/webcrawler/config.py**  
+  Načítání konfigurace do datové třídy `CrawlerConfig`.
 
-**src/webcrawler/crawler.py**  
-Obsahuje implementaci třídy WebCrawler.  
-Řeší fronty, vlákna, synchronizaci, stahování a ukládání HTML.
+- **src/webcrawler/crawler.py**  
+  Jádro programu – vícevláknový crawler, fronty, extrakce, ukládání výsledků.
 
-### 3.2 Architektura – textové schéma
+- **src/webcrawler/base_extractor.py**  
+  Základní třída pro extraktory (strategy pattern).
 
-- main.py načte konfiguraci, vytvoří instanci crawleru a zavolá run().
-- WebCrawler.run() vytvoří logger vlákno a pracovní vlákna.
-- Startovní URL je vložena do fronty.
-- Workery paralelně stahují stránky, extrahují odkazy a přidávají je do fronty.
-- Po vyčerpání úloh se pošlou sentinely pro ukončení workerů.
-- Logger ukončí činnost po zpracování všech zpráv.
+- **src/webcrawler/contacts_extractor.py**  
+  Extrakce e-mailů a telefonů.
 
+- **src/webcrawler/seo_extractor.py**  
+  Title, meta popisy, H1–H6.
+
+- **src/webcrawler/content_extractor.py**  
+  Čistý text blogů, článků a obsahových webů.
+
+### 3.2 Architektonický princip
+
+Schéma běhu:
+
+- main vybere profil a vytvoří vhodný extractor
+- WebCrawler vytvoří worker a logger vlákna
+- start_url je vložena do `task_queue`
+- workery:
+    - stáhnou HTML
+    - aplikují extractor
+    - nalezené odkazy opět vkládají do fronty
+- logger sériově zapisuje logy
+- po dokončení úloh se pošlou sentinely
+- výsledná data se uloží do JSON
+
+### 3.3 Command Pattern – modul `src/commands/`
+
+Aplikace používá **Command pattern** pro všechny operace dostupné v hlavním menu.  
+Každá položka menu je samostatná třída s metodou `execute()`.  
+To zpřehledňuje kód, umožňuje snadné rozšiřování a testování.
+
+#### `base.py` — abstraktní příkaz
+Základní abstraktní třída pro všechny commands.
+
+- definuje metodu `execute()`, kterou musí implementovat každý command
+- poskytuje jednotnou strukturu pro menu
+
+#### `exit_app.py` — ukončení aplikace
+- vypíše hlášku
+- ukončí běh programu pomocí `exit(0)`
+
+Použití:  
+Menu volba „Konec“.
+
+#### `run_crawler.py` — spuštění crawleru
+- načte konfiguraci
+- vytvoří instanci WebCrawler
+- podle profilu vybere správný extractor
+- nastaví extractor do crawleru
+- zobrazuje průběh pomocí tqdm progress baru
+- spustí crawler ve více vláknech
+- po dokončení uloží výsledky do JSON
+
+#### `set_profile.py` — změna profilu těžby
+- umožňuje přepnout mezi:
+    - contacts
+    - seo
+    - content
+    - custom
+- zapíše změnu do `config.ini`
+- změna se projeví při dalším spuštění crawleru
+
+#### `show_config.py` — zobrazení aktuální konfigurace
+- vypíše všechny aktuální parametry konfigurace  
+  (start_url, doména, profil těžby, ukládání HTML, limity, počty vláken)
+
+#### `show_profiles.py` — zobrazení dostupných profilů
+- načte seznam profilů ze `config.profiles`
+- vypíše je uživateli
+
+#### `toggle_save_html.py` — zapnutí/vypnutí ukládání HTML
+- přepne boolean hodnotu `save_html`
+- zapíše změnu do `config.ini`
+
+
+
+### 3.4 Struktura Command Patternu v projektu
+
+```
+src/
+├── commands/
+│   ├── __init__.py
+│   ├── base.py                → abstraktní Command
+│   ├── exit_app.py            → ukončení programu
+│   ├── run_crawler.py         → spuštění crawleru + progress bar
+│   ├── set_profile.py         → změna těžebního profilu
+│   ├── show_config.py         → výpis konfigurace
+│   ├── show_profiles.py       → dostupné profily
+│   └── toggle_save_html.py    → přepnutí ukládání HTML
+│
+├── webcrawler/
+│   ├── __init__.py
+│   ├── config.py              → načtení konfigurace
+│   ├── crawler.py             → vícevláknový crawler
+│   ├── base_extractor.py      → společná logika extraktorů
+│   ├── contacts_extractor.py  → extrakce emailů / telefonů
+│   ├── seo_extractor.py       → extrakce title / meta / headings
+│   └── content_extractor.py   → extrakce textového obsahu
+│
+└── main.py                    → menu aplikace + mapování commandů
+```
+
+
+### 3.5 Shrnutí přínosu Command Patternu
+
+- odděluje logiku UI (menu) od logiky programu
+- modulární rozšíření (nový příkaz = nový soubor)
+- jednotlivé příkazy jsou izolované → snadno testovatelné
+- hlavní menu je přehledné, bez podmínek a dlouhých funkcí
+
+
+---
 
 ## 4. Popis běhu aplikace
 
 ### 4.1 Typický běh
 
-1. Načtení konfigurace a vytvoření instance WebCrawler.
-2. Spuštění logger vlákna.
-3. Spuštění worker vláken.
-4. Vložení start_url do fronty.
-5. Workery stahují HTML, ukládají data a přidávají nové URL.
-6. main thread čeká na vyprázdnění fronty.
-7. Po dokončení práci workerů ukončí sentinely.
-8. Logger se ukončí po zpracování všech zpráv.
-9. Program vypíše informaci o dokončení.
+1. Uživatel spustí program přes `python -m src.main`.
+2. Zvolí v menu režim těžby.
+3. Vloží se startovní URL.
+4. Paralelní stahování a těžba probíhá, progress bar zobrazuje stav.
+5. Výsledky se ukládají pouze tehdy, pokud splňují filtry aktivního profilu.
+6. Program skončí po dosažení limitu nebo vyčerpání fronty.
 
-### 4.2 Stavy
+### 4.2 Stavový popis
 
-Inicializace, běh, čekání na frontu, ukončování vláken, konec aplikace.
+- inicializace front a vláken
+- běžící worker vlákna
+- čekání na dokončení fronty
+- poslání sentinelů
+- ukončení loggeru
+- zápis výsledků
 
+---
 
 ## 5. Rozhraní, protokoly a knihovny
 
-### 5.1 Síťová komunikace
+### 5.1 Knihovny třetích stran
 
-Aplikace používá HTTP/HTTPS požadavky pomocí knihovny requests.
+- **requests** – HTTP klient
+- **beautifulsoup4** – HTML parsování
+- **tqdm** – progress bar
 
-### 5.2 Knihovny třetích stran
+### 5.2 Standardní knihovny
 
-requests (Apache 2.0)  
-beautifulsoup4 (MIT)
+- threading
+- queue
+- time
+- urllib.parse
+- pathlib
+- configparser
+- dataclasses
+- json
 
-### 5.3 Standardní knihovny Pythonu
-
-threading, queue, time, urllib.parse, pathlib, configparser, dataclasses
-
-### 5.4 Právní aspekty
+### 5.3 Právní aspekty
 
 Projekt je školní práce.  
-Použité knihovny jsou použity v rámci svých licencí.  
-Crawler by měl být používán pouze na stránkách, které crawling povolují.
+Uživatel musí respektovat legislativu a robots.txt.
 
+---
 
-## 6. Konfigurace programu
+## 6. Konfigurace
 
-Konfigurace je v souboru config.ini:
+Ukázka `config.ini`:
 
 ```
 [crawler]
@@ -173,72 +266,130 @@ request_timeout = 7
 user_agent = WebCrawlerSchoolProject/1.0
 output_dir = data
 log_file = logs/crawler.log
+profiles = contacts, seo, content
+profile = seo
+save_html = false
 ```
 
-### Význam voleb
+### Hlavní volby
 
-start_url: počáteční URL  
-allowed_domain: doména, ve které se crawler pohybuje  
-max_workers: počet worker vláken  
-max_pages: maximální počet stahovaných stránek  
-queue_maxsize: kapacita fronty  
-request_timeout: timeout HTTP požadavku  
-user_agent: identifikace crawleru  
-output_dir: cílový adresář pro HTML  
-log_file: cesta k logovacímu souboru
+- **profile** – aktivní režim těžby
+- **profiles** – seznam dostupných režimů
+- **save_html** – zda ukládat HTML na disk
+- ostatní volby odpovídají staré verzi projektu
 
+---
 
 ## 7. Instalace a spuštění
 
 ### 7.1 Předpoklady
 
-nainstalovaný Python 3.x  
-přístup k internetu  
-možnost instalace balíčků z requirements.txt
+- Python 3.x
+- přístup k instalaci balíčků
+- možnost spouštět příkazy v terminálu
 
 ### 7.2 Instalace závislostí
 
-```
+```bash
 pip install -r requirements.txt
 ```
 
-### 7.3 Spuštění
+### 7.3 Spuštění programu
 
-```
-python src/main.py
-```
+Správné spuštění modulu:
 
-nebo
-
-```
-python src/main.py muj_config.ini
+```bash
+python -m src.main
 ```
 
+Spuštění s vlastním konfiguračním souborem:
 
-### 7.4 Struktura projektu
+```bash
+python -m src.main muj_config.ini
+```
+
+---
+
+## 8. Struktura projektu
 
 ```
-webcrawler-project/
+project/
 ├── config.ini
 ├── requirements.txt
 ├── README.md
-├── .gitignore
-├── doc
+├── doc/
 │   └── documentation.md
+├── tests/
+│   └── test_extractors.py
 ├── src/
 │   ├── main.py
+│   ├── __init__.py
+│   ├── commands/
+│   │   ├── __init__.py
+│   │   ├── base.py
+│   │   ├── exit_app.py
+│   │   ├── run_crawler.py
+│   │   ├── set_profile.py
+│   │   ├── show_config.py
+│   │   ├── show_profiles.py
+│   │   └── toggle_save_html.py
 │   └── webcrawler/
 │       ├── __init__.py
 │       ├── config.py
-│       └── crawler.py
-├── data/      (automaticky vytvořeno)
-└── logs/      (automaticky vytvořeno)
+│       ├── crawler.py
+│       ├── base_extractor.py
+│       ├── contacts_extractor.py
+│       ├── seo_extractor.py
+│       └── content_extractor.py
+├── data/ (generuje se)
+└── logs/ (generuje se)
 ```
 
-### 7.5 Doporučený postup
+---
 
-Upravit config.ini, nainstalovat závislosti, spustit aplikaci a ověřit výstupy.
+## 9. Testování
 
-### 7.6 Ukončení
+Projekt obsahuje sadu jednotkových testů:
 
-Crawler se ukončí po dosažení limitu, po vyčerpání URL nebo ručním ukončením. Logger skončí po dopsání všech zpráv.
+- testy extractorů
+- test textové extrakce
+- test filtrování dat
+- test prázdných výsledků
+- test neočekávaných HTML stavů
+
+Testy se spouští:
+
+```bash
+python -m unittest discover -s tests
+```
+
+Součástí projektu je i **uživatelské testování** – dotazník a protokol.
+
+---
+
+## 10. Praktické využití
+
+Typické scénáře využití:
+
+- sběr kontaktů pro firmy nebo seznamy
+- SEO audit konkurenčních webů
+- extrakce textů pro analýzu, učení nebo NLP
+- automatizace sběru veřejných informací
+- příprava datasetů
+
+Vícevláknové zpracování zajišťuje vyšší rychlost a volba profilu dává uživateli přesnou kontrolu nad tím, jaká data chce těžit.
+
+---
+
+## 11. Ukončení běhu
+
+Crawler se ukončí:
+
+- vyčerpáním fronty
+- dosažením `max_pages`
+- nebo ruční volbou v menu
+
+Logger doběhne až po zapsání všech zpráv.
+
+---
+
