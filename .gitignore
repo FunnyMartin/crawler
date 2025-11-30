@@ -8,3 +8,6 @@ venv/
 
 logs/
 data/
+data/*.json
+tests/tmp_test_dir/
+test_data/

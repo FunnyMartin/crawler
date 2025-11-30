@@ -1,35 +1,43 @@
 # src/webcrawler/seo_extractor.py
 # Autor: Martin Šilar
-# Extraktor SEO dat – title, meta description, headingy
+# SEO extractor – získává title, description, keywords a headings
 
 from bs4 import BeautifulSoup
 from .base_extractor import BaseExtractor
 
 
 class SEOExtractor(BaseExtractor):
-    def extract(self, url, html):
+    def extract(self, url: str, html: str):
         soup = BeautifulSoup(html, "html.parser")
 
-        title = soup.title.string.strip() if soup.title and soup.title.string else ""
-        description = ""
-        keywords = ""
-        h1 = [h.get_text(strip=True) for h in soup.find_all("h1")]
+        title_tag = soup.find("title")
+        title = title_tag.text.strip() if title_tag else ""
 
-        meta_desc = soup.find("meta", attrs={"name": "description"})
-        if meta_desc and meta_desc.get("content"):
-            description = meta_desc["content"]
+        desc_tag = soup.find("meta", attrs={"name": "description"})
+        meta_description = desc_tag.get("content", "").strip() if desc_tag else ""
 
-        meta_kw = soup.find("meta", attrs={"name": "keywords"})
-        if meta_kw and meta_kw.get("content"):
-            keywords = meta_kw["content"]
+        keywords_tag = soup.find("meta", attrs={"name": "keywords"})
+        if keywords_tag and keywords_tag.get("content"):
+            meta_keywords = [k.strip() for k in keywords_tag["content"].split(",")]
+        else:
+            meta_keywords = []
 
-        if not title and not description and not h1:
-            return None
+        headings = []
+        for h in ["h1", "h2", "h3", "h4", "h5", "h6"]:
+            for tag in soup.find_all(h):
+                text = tag.get_text(strip=True)
+                if text:
+                    headings.append(text)
 
-        return {
+        result = {
             "url": url,
             "title": title,
-            "description": description,
-            "keywords": keywords,
-            "h1": h1,
+            "meta_description": meta_description,
+            "meta_keywords": meta_keywords,
+            "headings": headings,
         }
+
+        if not (title or meta_description):
+            return None
+
+        return result
