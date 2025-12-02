@@ -22,4 +22,8 @@ class ToggleSaveHtmlCommand(Command):
         with open(self.config_path, "w", encoding="utf-8") as f:
             parser.write(f)
 
-        print(f"Ukládání HTML je nyní: {'ON' if new_value else 'OFF'}")
+        state = "ON" if new_value else "OFF"
+        print("\n--------------------------------")
+        print(f"  Ukládání HTML bylo změněno.")
+        print(f"  Nový stav: {state}")
+        print("--------------------------------\n")

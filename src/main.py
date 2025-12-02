@@ -1,6 +1,6 @@
 # src/main.py
 # Autor: Martin Šilar
-# Vstupní bod aplikace – uživatelské rozhraní a command pattern
+# Vstupní bod aplikace
 
 import sys
 from src.webcrawler.config import load_config
@@ -29,20 +29,24 @@ def main():
     }
 
     while True:
-        print("------------- MENU -------------")
-        print("1) Spustit crawler")
-        print("2) Zobrazit dostupné profily")
-        print("3) Zobrazit aktuální konfiguraci")
-        print("4) Změnit profil těžby")
-        print("5) Zapnout/vypnout ukládání HTML")
-        print("6) Ukončit")
-        print("--------------------------------")
+        html_state = "ON" if config.save_html else "OFF"
+        print("\n================= MENU =================")
+        print(f"Aktivní profil: {config.profile}")
+        print(f"Ukládání HTML: {html_state}")
+        print("----------------------------------------")
+        print("1) Spustit crawler           – zahájí těžbu")
+        print("2) Zobrazit profily          – dostupné režimy")
+        print("3) Zobrazit konfiguraci      – aktuální nastavení")
+        print("4) Změnit profil těžby       – contacts/seo/content")
+        print("5) Zapnout/vypnout HTML      – toggle ON/OFF")
+        print("6) Ukončit aplikaci")
+        print("========================================\n")
 
         cmd = input("Zadej volbu: ").strip()
         if cmd in commands:
             commands[cmd].execute()
         else:
-            print("Neplatná volba.")
+            print("\nNeplatná volba. Zkus znovu.\n")
 
 
 if __name__ == "__main__":
