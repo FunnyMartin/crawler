@@ -14,7 +14,7 @@ from ..webcrawler.config import load_config
 
 class RunCrawlerCommand:
     def execute(self):
-        print("\n--- Spouštím crawler ---\n")
+        print("\n========== Spouštím crawler ==========\n")
 
         config = load_config()
         crawler = WebCrawler(config)
@@ -26,7 +26,7 @@ class RunCrawlerCommand:
         elif config.profile == "content":
             extractor = ContentExtractor()
         else:
-            print("Neplatný profil v configu.")
+            print("Neplatný profil v configu.\n")
             return
 
         crawler.set_extractor(extractor)
@@ -49,4 +49,7 @@ class RunCrawlerCommand:
         progress.close()
 
         output_path = crawler.save_results()
-        print(f"\nTěžba dokončena. Data uložena do: {output_path}")
+
+        print("\n========== HOTOVO ==========")
+        print(f"Výsledný JSON: {output_path}")
+        input("\nStiskněte Enter pro návrat do menu...")
