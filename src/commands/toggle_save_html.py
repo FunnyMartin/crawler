@@ -5,6 +5,12 @@
 import configparser
 from .base import Command
 
+GREEN = "\033[92m"
+RED = "\033[91m"
+CYAN = "\033[96m"
+RESET = "\033[0m"
+BOLD = "\033[1m"
+
 
 class ToggleSaveHtmlCommand(Command):
     def __init__(self, config, config_path="config.ini"):
@@ -22,8 +28,9 @@ class ToggleSaveHtmlCommand(Command):
         with open(self.config_path, "w", encoding="utf-8") as f:
             parser.write(f)
 
-        state = "ON" if new_value else "OFF"
-        print("\n--------------------------------")
-        print(f"  Ukládání HTML bylo změněno.")
+        state = f"{GREEN}ON{RESET}" if new_value else f"{RED}OFF{RESET}"
+
+        print(f"\n{CYAN}--------------------------------{RESET}")
+        print(f"{BOLD}  Ukládání HTML bylo změněno.{RESET}")
         print(f"  Nový stav: {state}")
-        print("--------------------------------\n")
+        print(f"{CYAN}--------------------------------{RESET}\n")

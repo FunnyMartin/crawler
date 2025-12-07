@@ -11,10 +11,16 @@ from ..webcrawler.seo_extractor import SEOExtractor
 from ..webcrawler.content_extractor import ContentExtractor
 from ..webcrawler.config import load_config
 
+GREEN = "\033[92m"
+RED = "\033[91m"
+CYAN = "\033[96m"
+RESET = "\033[0m"
+BOLD = "\033[1m"
+
 
 class RunCrawlerCommand:
     def execute(self):
-        print("\n========== Spouštím crawler ==========\n")
+        print(f"\n{CYAN}{BOLD}========== Spouštím crawler =========={RESET}\n")
 
         config = load_config()
         crawler = WebCrawler(config)
@@ -26,7 +32,7 @@ class RunCrawlerCommand:
         elif config.profile == "content":
             extractor = ContentExtractor()
         else:
-            print("Neplatný profil v configu.\n")
+            print(f"{RED}Neplatný profil v configu.{RESET}\n")
             return
 
         crawler.set_extractor(extractor)
@@ -50,6 +56,6 @@ class RunCrawlerCommand:
 
         output_path = crawler.save_results()
 
-        print("\n========== HOTOVO ==========")
-        print(f"Výsledný JSON: {output_path}")
-        input("\nStiskněte Enter pro návrat do menu...")
+        print(f"\n{GREEN}{BOLD}========== HOTOVO =========={RESET}")
+        print(f"Výsledný JSON: {CYAN}{output_path}{RESET}")
+        input(f"\n{BOLD}Stiskněte Enter pro návrat do menu...{RESET}")

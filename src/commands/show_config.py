@@ -4,20 +4,29 @@
 
 from .base import Command
 
+GREEN = "\033[92m"
+RED = "\033[91m"
+CYAN = "\033[96m"
+YELLOW = "\033[93m"
+RESET = "\033[0m"
+BOLD = "\033[1m"
+
 
 class ShowConfigCommand(Command):
     def __init__(self, config):
         self.config = config
 
     def execute(self):
-        html_state = "ON" if self.config.save_html else "OFF"
+        html_state = f"{GREEN}ON{RESET}" if self.config.save_html else f"{RED}OFF{RESET}"
 
-        print("\nAktuální konfigurace:")
-        print("---------------------------")
-        print(f"Start URL:      {self.config.start_url}")
-        print(f"Doména:         {self.config.allowed_domain}")
-        print(f"Profil:         {self.config.profile}")
-        print(f"Ukládání HTML:  {html_state}")
-        print(f"Max workers:    {self.config.max_workers}")
-        print(f"Max pages:      {self.config.max_pages}")
-        print("---------------------------\n")
+        print(f"""
+{CYAN}{BOLD}Aktuální konfigurace:{RESET}
+-----------------------------------
+Start URL:       {YELLOW}{self.config.start_url}{RESET}
+Doména:          {YELLOW}{self.config.allowed_domain}{RESET}
+Profil:          {YELLOW}{self.config.profile}{RESET}
+Ukládání HTML:   {html_state}
+Max workers:     {self.config.max_workers}
+Max pages:       {self.config.max_pages}
+-----------------------------------
+""")

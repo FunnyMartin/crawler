@@ -4,35 +4,42 @@
 
 from .base import Command
 
+RESET = "\033[0m"
+BOLD = "\033[1m"
+CYAN = "\033[96m"
+GREEN = "\033[92m"
+YELLOW = "\033[93m"
+
 
 class HelpCommand(Command):
     def __init__(self, config):
         self.config = config
 
     def execute(self):
-        html_state = "ON" if self.config.save_html else "OFF"
+        html_state = f"ON" if self.config.save_html else "OFF"
 
-        print("\n============= NÁPOVĚDA =============")
-        print("Toto je přehled všech dostupných příkazů:")
-        print("----------------------------------------")
-        print("1) Spustit crawler")
-        print("   Spustí vícevláknové procházení webu,")
-        print("   podle zvoleného profilu extrahuje data,")
-        print("   zobrazí progress bar a uloží výsledky do JSON.")
-        print()
-        print("2) Zobrazit profily")
-        print("   Vypíše podporované režimy těžby dat a jejich význam.")
-        print()
-        print("3) Zobrazit konfiguraci")
-        print("   Ukáže aktuální nastavení (URL, doména, profil, HTML ON/OFF).")
-        print()
-        print("4) Změnit profil těžby")
-        print("   Umožňuje přepnout mezi: contacts / seo / content / custom.")
-        print()
-        print("5) Zapnout/vypnout ukládání HTML")
-        print(f"   Přepne ukládání HTML souborů (aktuálně: {html_state}).")
-        print()
-        print("6) Ukončit aplikaci")
-        print("   Bezpečně ukončí program.")
-        print("----------------------------------------")
-        print("Tip: Spusť crawler s vypnutým HTML, pokud ti jde jen o data.\n")
+        print(f"""
+{CYAN}{BOLD}============= NÁPOVĚDA ============={RESET}
+
+1) {GREEN}Spustit crawler{RESET}
+   Spustí vícevláknové procházení webu.
+   Extrahuje data podle profilu a uloží JSON.
+
+2) {GREEN}Zobrazit profily{RESET}
+   Vypíše možné režimy těžby dat.
+
+3) {GREEN}Zobrazit konfiguraci{RESET}
+   Zobrazí aktuální parametry aplikace.
+
+4) {GREEN}Změnit profil těžby{RESET}
+   Přepne mezi: contacts / seo / content / custom.
+
+5) {GREEN}Toggle ukládání HTML{RESET}
+   Přepíná ukládání stažených HTML (aktuálně: {YELLOW}{html_state}{RESET}).
+
+6) {GREEN}Ukončit aplikaci{RESET}
+   Bezpečně ukončí program.
+
+----------------------------------------
+Tip: Pokud chceš jen data → vypni HTML.
+""")

@@ -5,6 +5,12 @@
 import configparser
 from .base import Command
 
+GREEN = "\033[92m"
+RED = "\033[91m"
+CYAN = "\033[96m"
+RESET = "\033[0m"
+BOLD = "\033[1m"
+
 
 class SetProfileCommand(Command):
     def __init__(self, config, config_path="config.ini"):
@@ -12,13 +18,13 @@ class SetProfileCommand(Command):
         self.config_path = config_path
 
     def execute(self):
-        print("Vyber profil těžby:")
+        print(f"{CYAN}Dostupné profily:{RESET}")
         print("1) contacts")
         print("2) seo")
         print("3) content")
         print("4) custom")
 
-        choice = input("Zadej volbu: ")
+        choice = input("\nZadej volbu: ")
 
         mapping = {
             "1": "contacts",
@@ -28,7 +34,7 @@ class SetProfileCommand(Command):
         }
 
         if choice not in mapping:
-            print("Neplatná volba.")
+            print(f"{RED}Neplatná volba.{RESET}")
             return
 
         new_profile = mapping[choice]
@@ -41,4 +47,4 @@ class SetProfileCommand(Command):
         with open(self.config_path, "w", encoding="utf-8") as f:
             parser.write(f)
 
-        print(f"Profil uložen: {new_profile}")
+        print(f"{GREEN}Profil úspěšně uložen: {new_profile}{RESET}")
