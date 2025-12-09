@@ -2,6 +2,7 @@
 # Autor: Martin Šilar
 # Spuštění crawleru přes Command pattern
 
+import os
 import threading
 from tqdm import tqdm
 
@@ -55,6 +56,11 @@ class RunCrawlerCommand:
         progress.close()
 
         output_path = crawler.save_results()
+
+        try:
+            os.startfile(output_path)
+        except Exception:
+            pass
 
         print(f"\n{GREEN}{BOLD}========== HOTOVO =========={RESET}")
         print(f"Výsledný JSON: {CYAN}{output_path}{RESET}")
