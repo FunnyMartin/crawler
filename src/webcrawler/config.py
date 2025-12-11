@@ -6,6 +6,7 @@ import configparser
 from dataclasses import dataclass
 from pathlib import Path
 
+
 @dataclass
 class CrawlerConfig:
     start_url: str
@@ -19,6 +20,7 @@ class CrawlerConfig:
     log_file: Path
     profile: str
     save_html: bool
+    open_json_after_finish: bool
     profiles: list[str]
 
 
@@ -46,5 +48,6 @@ def load_config(path="config.ini") -> CrawlerConfig:
         log_file=log_file,
         profile=c.get("profile", fallback="contacts"),
         save_html=c.getboolean("save_html", fallback=False),
+        open_json_after_finish=c.getboolean("open_json_after_finish", fallback=False),
         profiles=profiles,
     )
