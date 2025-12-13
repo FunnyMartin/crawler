@@ -16,30 +16,41 @@ class HelpCommand(Command):
         self.config = config
 
     def execute(self):
-        html_state = f"ON" if self.config.save_html else "OFF"
+        html_state = "ON" if self.config.save_html else "OFF"
+        open_state = "ON" if self.config.open_json_after_finish else "OFF"
 
         print(f"""
 {CYAN}{BOLD}============= NÁPOVĚDA ============={RESET}
 
 1) {GREEN}Spustit crawler{RESET}
-   Spustí vícevláknové procházení webu.
-   Extrahuje data podle profilu a uloží JSON.
+   Spustí vícevláknové procházení webu v rámci jedné domény.
+   Podle aktivního profilu extrahuje data a uloží je do JSON.
+   Profil: {YELLOW}{self.config.profile}{RESET}
 
 2) {GREEN}Zobrazit profily{RESET}
-   Vypíše možné režimy těžby dat.
+   Vypíše všechny podporované režimy těžby dat
+   (contacts / seo / content).
 
 3) {GREEN}Zobrazit konfiguraci{RESET}
-   Zobrazí aktuální parametry aplikace.
+   Zobrazí aktuální nastavení aplikace:
+   URL, doménu, limity, profil a přepínače.
 
-4) {GREEN}Změnit profil těžby{RESET}
-   Přepne mezi: contacts / seo / content / custom.
+4) {GREEN}Nastavení aplikace{RESET}
+   Otevře konfigurační menu, kde lze:
+   - změnit profil těžby
+   - zapnout/vypnout ukládání HTML (aktuálně: {YELLOW}{html_state}{RESET})
+   - zapnout/vypnout otevření JSON po dokončení (aktuálně: {YELLOW}{open_state}{RESET})
+   - změnit max_pages a max_workers
+   Všechny změny se ukládají přímo do config.ini.
 
-5) {GREEN}Toggle ukládání HTML{RESET}
-   Přepíná ukládání stažených HTML (aktuálně: {YELLOW}{html_state}{RESET}).
+5) {GREEN}Nápověda{RESET}
+   Zobrazí tento přehled příkazů.
 
 6) {GREEN}Ukončit aplikaci{RESET}
-   Bezpečně ukončí program.
+   Okamžitě a bezpečně ukončí program.
 
 ----------------------------------------
-Tip: Pokud chceš jen data → vypni HTML.
+Tip:
+- Pokud ti jde jen o data → vypni ukládání HTML.
+- Nastavení se projeví při dalším spuštění crawleru.
 """)

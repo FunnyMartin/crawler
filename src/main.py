@@ -6,11 +6,10 @@ import sys
 from src.webcrawler.config import load_config
 from src.commands.run_crawler import RunCrawlerCommand
 from src.commands.show_profiles import ShowProfilesCommand
-from src.commands.exit_app import ExitAppCommand
 from src.commands.show_config import ShowConfigCommand
-from src.commands.set_profile import SetProfileCommand
-from src.commands.toggle_save_html import ToggleSaveHtmlCommand
+from src.commands.config_menu import ConfigMenuCommand
 from src.commands.help_command import HelpCommand
+from src.commands.exit_app import ExitAppCommand
 
 RESET = "\033[0m"
 BOLD = "\033[1m"
@@ -31,10 +30,9 @@ def main():
         "1": RunCrawlerCommand(),
         "2": ShowProfilesCommand(config),
         "3": ShowConfigCommand(config),
-        "4": SetProfileCommand(config, config_path),
-        "5": ToggleSaveHtmlCommand(config, config_path),
+        "4": ConfigMenuCommand(config, config_path),
+        "5": HelpCommand(config),
         "6": ExitAppCommand(),
-        "7": HelpCommand(config),
     }
 
     while True:
@@ -42,25 +40,25 @@ def main():
 
         print(f"""
 {CYAN}{BOLD}=============== WEBCRAWLER MENU ==============={RESET}
-Aktivní profil: {YELLOW}{config.profile}{RESET}
-Ukládání HTML: {html_state}
+Profil: {YELLOW}{config.profile}{RESET}
+HTML: {html_state}
 ------------------------------------------------
-1) {GREEN}Spustit crawler{RESET}
-2) Zobrazit dostupné profily
-3) Zobrazit aktuální konfiguraci
-4) Změnit profil těžby
-5) Přepnout ukládání HTML (ON/OFF)
-6) Ukončit aplikaci
-7) Nápověda
+1) Spustit crawler
+2) Zobrazit profily
+3) Zobrazit konfiguraci
+4) Nastavení aplikace
+5) Nápověda
+6) Ukončit
 {CYAN}================================================{RESET}
 """)
 
         cmd = input(f"{BOLD}Vyber možnost:{RESET} ").strip()
 
-        if cmd in commands:
-            commands[cmd].execute()
+        command = commands.get(cmd)
+        if command:
+            command.execute()
         else:
-            print(f"{RED}Neplatná volba. Zadejte číslo 1–7.{RESET}")
+            print(f"{RED}Neplatná volba. Zadejte číslo 1–6.{RESET}")
 
 
 if __name__ == "__main__":
