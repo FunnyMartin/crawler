@@ -4,6 +4,7 @@
 
 import os
 import threading
+import time
 from tqdm import tqdm
 
 from ..webcrawler.crawler import WebCrawler
@@ -33,25 +34,38 @@ class RunCrawlerCommand:
         elif config.profile == "content":
             extractor = ContentExtractor()
         else:
-            print(f"{RED}Neplatný profil v configu.{RESET}\n")
+            print(f"{RED}Neplatný profil v configu.{RESET}")
             return
 
         crawler.set_extractor(extractor)
 
-        progress = tqdm(total=config.max_pages, desc="Průběh")
+        progress = tqdm(
+            total=config.max_pages,
+            desc="Průběh",
+            dynamic_ncols=True
+        )
 
         def progress_watcher():
             last = 0
-            while crawler.page_count < config.max_pages:
-                if crawler.page_count != last:
-                    progress.update(crawler.page_count - last)
-                    last = crawler.page_count
-            progress.update(config.max_pages - last)
+            while True:
+                current = crawler.page_count
+                if current != last:
+                    progress.update(current - last)
+                    last = current
+
+                if not crawler_running[0]:
+                    break
+
+                time.sleep(0.1)
+
+        crawler_running = [True]
 
         watcher = threading.Thread(target=progress_watcher, daemon=True)
         watcher.start()
 
         crawler.run()
+
+        crawler_running[0] = False
         watcher.join()
         progress.close()
 

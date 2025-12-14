@@ -1,6 +1,6 @@
 # src/commands/help_command.py
 # Autor: Martin Šilar
-# Nápověda k jednotlivým příkazům
+# Nápověda k aplikaci
 
 from .base import Command
 
@@ -17,40 +17,34 @@ class HelpCommand(Command):
 
     def execute(self):
         html_state = "ON" if self.config.save_html else "OFF"
-        open_state = "ON" if self.config.open_json_after_finish else "OFF"
+        json_state = "ON" if self.config.open_json_after_finish else "OFF"
 
         print(f"""
 {CYAN}{BOLD}============= NÁPOVĚDA ============={RESET}
 
 1) {GREEN}Spustit crawler{RESET}
-   Spustí vícevláknové procházení webu v rámci jedné domény.
-   Podle aktivního profilu extrahuje data a uloží je do JSON.
-   Profil: {YELLOW}{self.config.profile}{RESET}
+   Prochází web v rámci jedné domény a těží data.
+   Aktivní profil: {YELLOW}{self.config.profile}{RESET}
 
-2) {GREEN}Zobrazit profily{RESET}
-   Vypíše všechny podporované režimy těžby dat
-   (contacts / seo / content).
+2) {GREEN}Profily těžby{RESET}
+   contacts → e-maily, telefonní čísla
+   seo      → title, meta description, nadpisy
+   content  → čistý text stránky
 
-3) {GREEN}Zobrazit konfiguraci{RESET}
-   Zobrazí aktuální nastavení aplikace:
-   URL, doménu, limity, profil a přepínače.
+3) {GREEN}Konfigurace{RESET}
+   Nastavení lze měnit přímo v aplikaci:
+   - Start URL + doména
+   - Profil těžby
+   - Limity (pages / workers)
+   - Přepínače chování
 
-4) {GREEN}Nastavení aplikace{RESET}
-   Otevře konfigurační menu, kde lze:
-   - změnit profil těžby
-   - zapnout/vypnout ukládání HTML (aktuálně: {YELLOW}{html_state}{RESET})
-   - zapnout/vypnout otevření JSON po dokončení (aktuálně: {YELLOW}{open_state}{RESET})
-   - změnit max_pages a max_workers
-   Všechny změny se ukládají přímo do config.ini.
-
-5) {GREEN}Nápověda{RESET}
-   Zobrazí tento přehled příkazů.
-
-6) {GREEN}Ukončit aplikaci{RESET}
-   Okamžitě a bezpečně ukončí program.
+4) {GREEN}Přepínače{RESET}
+   HTML ukládání: {YELLOW}{html_state}{RESET}
+   Otevření JSON po dokončení: {YELLOW}{json_state}{RESET}
 
 ----------------------------------------
-Tip:
-- Pokud ti jde jen o data → vypni ukládání HTML.
-- Nastavení se projeví při dalším spuštění crawleru.
+Tipy:
+- Pokud chceš jen data → vypni HTML.
+- Změna URL automaticky nastaví doménu.
+- Neplatné URL jsou odmítnuty.
 """)
